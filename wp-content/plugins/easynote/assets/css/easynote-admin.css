@@ -1,0 +1,236 @@
+/* EasyNote admin styling: sidebar tree + Notion-like category page. */
+
+/* ---------- Sidebar tree ---------- */
+.easynote-tree-wrap {
+	background: #1d2327;
+	padding: 4px 0 8px;
+}
+
+#adminmenu .easynote-tree,
+#adminmenu .easynote-tree .easynote-children {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+#adminmenu .easynote-tree .easynote-children {
+	display: none;
+	padding-left: 14px;
+}
+
+#adminmenu .easynote-tree .easynote-node.is-open > .easynote-children {
+	display: block;
+}
+
+#adminmenu .easynote-tree .easynote-row {
+	display: flex;
+	align-items: center;
+	min-height: 30px;
+}
+
+#adminmenu .easynote-tree .easynote-toggle {
+	flex: 0 0 auto;
+	width: 22px;
+	height: 26px;
+	padding: 0;
+	margin: 0;
+	background: none;
+	border: 0;
+	cursor: pointer;
+	color: #a7aaad;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+#adminmenu .easynote-tree .easynote-toggle .dashicons {
+	width: 18px;
+	height: 18px;
+	font-size: 18px;
+	transition: transform 0.15s ease;
+}
+
+#adminmenu .easynote-tree .easynote-node.is-open > .easynote-row > .easynote-toggle .dashicons {
+	transform: rotate(90deg);
+}
+
+#adminmenu .easynote-tree .easynote-toggle--empty {
+	display: inline-block;
+	width: 22px;
+}
+
+#adminmenu .easynote-tree .easynote-link {
+	flex: 1 1 auto;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 5px 8px 5px 0;
+	color: #dcdcde;
+	text-decoration: none;
+	font-size: 13px;
+	line-height: 1.3;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+#adminmenu .easynote-tree .easynote-link .dashicons {
+	flex: 0 0 auto;
+	width: 16px;
+	height: 16px;
+	font-size: 16px;
+	opacity: 0.75;
+}
+
+#adminmenu .easynote-tree .easynote-link:hover,
+#adminmenu .easynote-tree .easynote-link:focus {
+	color: #72aee6;
+}
+
+#adminmenu .easynote-tree .easynote-link.is-active {
+	color: #fff;
+	font-weight: 600;
+	background: #2271b1;
+	border-radius: 3px;
+}
+
+/* ---------- Category page ---------- */
+.easynote-page {
+	max-width: 820px;
+}
+
+.easynote-page .easynote-breadcrumb {
+	font-size: 13px;
+	color: #646970;
+	margin: 6px 0 4px;
+}
+
+.easynote-page .easynote-breadcrumb .sep {
+	margin: 0 4px;
+	color: #c3c4c7;
+}
+
+.easynote-page .easynote-title {
+	font-size: 30px;
+	font-weight: 700;
+	line-height: 1.2;
+	margin: 4px 0 6px;
+	padding: 0;
+}
+
+.easynote-page .easynote-subtitle {
+	color: #646970;
+	margin: 0 0 18px;
+}
+
+.easynote-page .easynote-body {
+	font-size: 15px;
+	line-height: 1.7;
+	color: #1d2327;
+	margin: 0 0 22px;
+}
+
+.easynote-page .easynote-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: flex-start;
+	margin: 0 0 14px;
+}
+
+.easynote-page .easynote-form {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	margin: 10px 0;
+}
+
+.easynote-page .easynote-form--stack {
+	display: block;
+	max-width: 560px;
+}
+
+.easynote-page details.easynote-add-sub summary,
+.easynote-page details.easynote-edit summary {
+	cursor: pointer;
+	display: inline-block;
+	list-style: none;
+}
+
+.easynote-page details.easynote-edit {
+	margin: 0 0 18px;
+}
+
+.easynote-page .easynote-children {
+	margin: 8px 0 0;
+	padding: 0;
+	list-style: none;
+	border-top: 1px solid #e0e0e0;
+}
+
+.easynote-page .easynote-child {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 6px;
+	border-bottom: 1px solid #e8e8e8;
+}
+
+.easynote-page .easynote-child > a {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex: 1 1 auto;
+	text-decoration: none;
+	color: #1d2327;
+	font-size: 15px;
+}
+
+.easynote-page .easynote-child > a:hover .easynote-child__label {
+	text-decoration: underline;
+}
+
+.easynote-page .easynote-child__icon {
+	color: #646970;
+}
+
+.easynote-page .easynote-child--inbox {
+	margin-top: 14px;
+	color: #646970;
+	font-weight: 600;
+	text-transform: uppercase;
+	font-size: 12px;
+	letter-spacing: 0.4px;
+	border-bottom: 0;
+}
+
+.easynote-page .easynote-child__count {
+	background: #f0f0f1;
+	border-radius: 9px;
+	padding: 1px 8px;
+	font-size: 11px;
+	font-weight: 600;
+}
+
+.easynote-page .easynote-child__trash {
+	flex: 0 0 auto;
+	font-size: 12px;
+	color: #b32d2e;
+	text-decoration: none;
+	opacity: 0;
+	transition: opacity 0.1s ease;
+}
+
+.easynote-page .easynote-child:hover .easynote-child__trash {
+	opacity: 1;
+}
+
+.easynote-page .easynote-empty {
+	margin: 24px 0;
+	padding: 28px;
+	background: #f6f7f7;
+	border: 1px dashed #c3c4c7;
+	border-radius: 6px;
+	color: #646970;
+	text-align: center;
+}
