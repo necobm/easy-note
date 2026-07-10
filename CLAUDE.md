@@ -38,3 +38,21 @@ docker compose exec wordpress wp <command>
 - Environment values come from `.env` → `docker-compose.yml`. The DB credentials are duplicated as two sets that must stay in sync: `WORDPRESS_DB_*` (what WordPress connects with) and `MYSQL_*` (what MySQL creates on first boot). Change one, change the matching other.
 - Debug config is injected through `WORDPRESS_CONFIG_EXTRA` in `docker-compose.yml`, which `wp-config.php` runs via `eval()`. `WORDPRESS_DEBUG=1` enables `WP_DEBUG`; the extra block adds `WP_DEBUG_LOG` and `WP_DEBUG_DISPLAY`. This is a dev configuration (verbose errors, PHP's `php.ini-development`) — not production-hardened.
 - The whole project is bind-mounted to `/var/www/html`, so host edits are live in the container with no rebuild. Rebuild the image (`docker compose build`) only when changing the `Dockerfile` itself.
+
+## Multi-agent workflow
+
+This repo defines specialist subagents in `.claude/agents/`. For any non-trivial feature, **the main session orchestrates** — subagents can't spawn each other, so delegation happens from here.
+
+Specialists and ownership:
+
+- **orchestrator** — read-only planner. For a multi-part request, invoke it first to get an ordered delegation plan, then execute that plan.
+- **wordpress-expert** — all PHP/WordPress backend (plugin, hooks, REST, admin, security) and the server side of dynamic blocks (`render.php` / `render_callback`).
+- **react-expert** — Gutenberg block front end (`block.json`, edit/save, attributes, `@wordpress/scripts` build).
+- **test-implementer** — PHPUnit (plugin PHP) and Jest (`@wordpress/scripts test-unit-js`, block JS); runs the tests it writes.
+- **code-reviewer** — read-only correctness + WordPress security review; runs last, before committing.
+
+Default feature pipeline: **orchestrator** (plan) → **wordpress-expert** and/or **react-expert** (build) → **test-implementer** → **code-reviewer** → loop back on blocking findings.
+
+Sequencing rule: independent PHP plugin work and block JS can run **in parallel**; when a block depends on a plugin REST endpoint or a dynamic `render_callback`, **serialize** — wordpress-expert defines the contract first, then react-expert builds against it.
+
+Each specialist routes into the skills already installed under `.agents/skills/` (e.g. `wp-plugin-development`, `wp-block-development`, `vercel-react-best-practices`) rather than duplicating that guidance.
