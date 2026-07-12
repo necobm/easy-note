@@ -1,8 +1,7 @@
 <?php
 /**
  * Plugin Name:       EasyNote
- * Plugin URI:        https://example.com/easynote
- * Description:       Turns WordPress into a self-hosted, Notion-like note app. Categories become a nestable note tree, posts become notes, and editors get a focused admin UI. No core files are modified.
+ * Description:       A self-hosted, Notion-like note app for WordPress. Notes are a custom post type organised into a folder tree, edited in a headless React app served on the front end, while wp-admin stays stock.
  * Version:           0.1.0
  * Requires at least: 6.5
  * Requires PHP:      8.0
@@ -10,6 +9,7 @@
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       easynote
+ * Domain Path:       /languages
  *
  * @package EasyNote
  */
@@ -24,16 +24,14 @@ define( 'EASYNOTE_FILE', __FILE__ );
 define( 'EASYNOTE_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EASYNOTE_URL', plugin_dir_url( __FILE__ ) );
 
-/** Admin page slug for the single EasyNote screen (admin.php?page=easynote). */
-define( 'EASYNOTE_PAGE', 'easynote' );
-
 require_once EASYNOTE_DIR . 'inc/class-activator.php';
 require_once EASYNOTE_DIR . 'inc/class-roles.php';
+require_once EASYNOTE_DIR . 'inc/class-post-type.php';
+require_once EASYNOTE_DIR . 'inc/class-taxonomy.php';
 require_once EASYNOTE_DIR . 'inc/class-notes.php';
-require_once EASYNOTE_DIR . 'inc/class-sidebar-tree.php';
-require_once EASYNOTE_DIR . 'inc/class-category-page.php';
-require_once EASYNOTE_DIR . 'inc/class-admin-menu.php';
-require_once EASYNOTE_DIR . 'inc/class-redirects.php';
+require_once EASYNOTE_DIR . 'inc/class-rest-api.php';
+require_once EASYNOTE_DIR . 'inc/class-rest-public.php';
+require_once EASYNOTE_DIR . 'inc/class-app-shell.php';
 require_once EASYNOTE_DIR . 'inc/class-easynote.php';
 
 // Lifecycle hooks must be registered at top level (not inside another hook).
@@ -46,6 +44,9 @@ register_deactivation_hook( __FILE__, array( 'EasyNote_Activator', 'deactivate' 
 add_action(
 	'plugins_loaded',
 	static function () {
+		// Translations load just-in-time from the plugin's languages directory
+		// (and translate.wordpress.org for hosted installs); no manual
+		// load_plugin_textdomain() call is needed since WordPress 4.6.
 		EasyNote::instance()->run();
 	}
 );

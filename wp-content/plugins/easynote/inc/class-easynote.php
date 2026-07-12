@@ -47,14 +47,13 @@ final class EasyNote {
 	 * Wire up the components (no side effects beyond object creation).
 	 */
 	private function __construct() {
-		$category_page = new EasyNote_Category_Page();
-
-		$this->components['roles']         = new EasyNote_Roles();
-		$this->components['notes']         = new EasyNote_Notes();
-		$this->components['category_page'] = $category_page;
-		$this->components['sidebar_tree']  = new EasyNote_Sidebar_Tree();
-		$this->components['admin_menu']    = new EasyNote_Admin_Menu( $category_page );
-		$this->components['redirects']     = new EasyNote_Redirects();
+		$this->components['roles']       = new EasyNote_Roles();
+		$this->components['post_type']   = new EasyNote_Post_Type();
+		$this->components['taxonomy']    = new EasyNote_Taxonomy();
+		$this->components['notes']       = new EasyNote_Notes();
+		$this->components['rest_api']    = new EasyNote_REST_API();
+		$this->components['rest_public'] = new EasyNote_REST_Public();
+		$this->components['app_shell']   = new EasyNote_App_Shell();
 	}
 
 	/**

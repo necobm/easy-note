@@ -1,0 +1,290 @@
+# Copyright (C) 2026 EasyNote
+# This file is distributed under the GPL-2.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: EasyNote 0.1.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/easynote\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-07-12T09:38:50+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: easynote\n"
+
+#. Plugin Name of the plugin
+#. Author of the plugin
+#: easynote.php
+msgid "EasyNote"
+msgstr ""
+
+#. Plugin URI of the plugin
+#: easynote.php
+msgid "https://example.com/easynote"
+msgstr ""
+
+#. Description of the plugin
+#: easynote.php
+msgid "A self-hosted, Notion-like note app for WordPress. Notes are a custom post type organised into a folder tree, edited in a headless React app served on the front end, while wp-admin stays stock."
+msgstr ""
+
+#. translators: %s: URL of the Permalinks settings screen.
+#: inc/class-app-shell.php:56
+#, php-format
+msgid "EasyNote needs pretty permalinks to serve the notes app. Please choose any option other than “Plain” on the <a href=\"%s\">Permalinks settings</a> screen."
+msgstr ""
+
+#: inc/class-app-shell.php:149
+#: app/src/components/Sidebar.jsx:34
+msgid "Notes"
+msgstr ""
+
+#: inc/class-app-shell.php:167
+#: app/src/components/Sidebar.jsx:37
+msgid "Note"
+msgstr ""
+
+#: inc/class-post-type.php:49
+msgctxt "post type general name"
+msgid "Notes"
+msgstr ""
+
+#: inc/class-post-type.php:50
+msgctxt "post type singular name"
+msgid "Note"
+msgstr ""
+
+#: inc/class-post-type.php:51
+msgctxt "admin menu"
+msgid "Notes"
+msgstr ""
+
+#: inc/class-post-type.php:52
+msgctxt "add new on admin bar"
+msgid "Note"
+msgstr ""
+
+#: inc/class-post-type.php:53
+msgid "Add New"
+msgstr ""
+
+#: inc/class-post-type.php:54
+msgid "Add New Note"
+msgstr ""
+
+#: inc/class-post-type.php:55
+msgid "New Note"
+msgstr ""
+
+#: inc/class-post-type.php:56
+msgid "Edit Note"
+msgstr ""
+
+#: inc/class-post-type.php:57
+msgid "View Note"
+msgstr ""
+
+#: inc/class-post-type.php:58
+msgid "All Notes"
+msgstr ""
+
+#: inc/class-post-type.php:59
+msgid "Search Notes"
+msgstr ""
+
+#: inc/class-post-type.php:60
+msgid "No notes found."
+msgstr ""
+
+#: inc/class-post-type.php:61
+msgid "No notes found in Trash."
+msgstr ""
+
+#: inc/class-post-type.php:62
+msgid "Notes list"
+msgstr ""
+
+#: inc/class-post-type.php:63
+msgid "Notes list navigation"
+msgstr ""
+
+#: inc/class-rest-api.php:75
+msgid "Target folder term id, or 0 for the Inbox."
+msgstr ""
+
+#: inc/class-rest-api.php:115
+msgid "New parent folder term id, or 0 for a root folder."
+msgstr ""
+
+#: inc/class-rest-api.php:206
+msgid "The target folder does not exist."
+msgstr ""
+
+#: inc/class-rest-api.php:284
+msgid "The target parent folder does not exist."
+msgstr ""
+
+#: inc/class-rest-api.php:292
+msgid "A folder cannot be moved into itself or one of its descendants."
+msgstr ""
+
+#: inc/class-rest-api.php:332
+#: inc/class-rest-public.php:68
+msgid "Note not found."
+msgstr ""
+
+#: inc/class-taxonomy.php:41
+msgctxt "taxonomy general name"
+msgid "Folders"
+msgstr ""
+
+#: inc/class-taxonomy.php:42
+msgctxt "taxonomy singular name"
+msgid "Folder"
+msgstr ""
+
+#: inc/class-taxonomy.php:43
+msgid "Folders"
+msgstr ""
+
+#: inc/class-taxonomy.php:44
+msgid "All Folders"
+msgstr ""
+
+#: inc/class-taxonomy.php:45
+msgid "Edit Folder"
+msgstr ""
+
+#: inc/class-taxonomy.php:46
+msgid "Update Folder"
+msgstr ""
+
+#: inc/class-taxonomy.php:47
+msgid "Add New Folder"
+msgstr ""
+
+#: inc/class-taxonomy.php:48
+msgid "New Folder Name"
+msgstr ""
+
+#: inc/class-taxonomy.php:49
+msgid "Parent Folder"
+msgstr ""
+
+#: inc/class-taxonomy.php:50
+msgid "Parent Folder:"
+msgstr ""
+
+#: inc/class-taxonomy.php:51
+msgid "Search Folders"
+msgstr ""
+
+#: inc/class-taxonomy.php:52
+msgid "No folders found."
+msgstr ""
+
+#: inc/class-taxonomy.php:53
+msgid "Folders list"
+msgstr ""
+
+#: inc/class-taxonomy.php:54
+msgid "Folders list navigation"
+msgstr ""
+
+#: app/src/components/App.jsx:26
+msgid "Select a note, or create a new one."
+msgstr ""
+
+#: app/src/components/NoteEditorPane.jsx:21
+#: app/src/components/ReadOnlyNoteView.jsx:25
+#: app/src/components/Sidebar.jsx:45
+msgid "Loading…"
+msgstr ""
+
+#: app/src/components/NoteEditorPane.jsx:24
+msgid "Could not load this note."
+msgstr ""
+
+#: app/src/components/NoteEditorPane.jsx:32
+msgid "Saving…"
+msgstr ""
+
+#: app/src/components/NoteEditorPane.jsx:33
+msgid "Saved"
+msgstr ""
+
+#: app/src/components/NoteEditorPane.jsx:34
+msgid "Save failed"
+msgstr ""
+
+#: app/src/components/NoteEditorPane.jsx:76
+#: app/src/components/Sidebar.jsx:54
+msgid "Inbox"
+msgstr ""
+
+#: app/src/components/NoteEditorPane.jsx:94
+msgid "Public"
+msgstr ""
+
+#: app/src/components/NoteEditorPane.jsx:99
+msgid "View public link"
+msgstr ""
+
+#: app/src/components/NoteEditorPane.jsx:109
+msgid "Untitled"
+msgstr ""
+
+#: app/src/components/NoteEditorPane.jsx:120
+msgid "Write something, or use '#', '-', '>' shortcuts…"
+msgstr ""
+
+#: app/src/components/ReadOnlyNoteView.jsx:28
+msgid "This note is not available."
+msgstr ""
+
+#: app/src/components/Sidebar.jsx:25
+msgid "Folder name"
+msgstr ""
+
+#: app/src/components/Sidebar.jsx:36
+msgid "New note"
+msgstr ""
+
+#: app/src/components/Sidebar.jsx:39
+msgid "New folder"
+msgstr ""
+
+#: app/src/components/Sidebar.jsx:40
+msgid "Folder"
+msgstr ""
+
+#: app/src/components/Sidebar.jsx:69
+msgid "Rename folder"
+msgstr ""
+
+#: app/src/components/Sidebar.jsx:76
+msgid "Delete this folder? Notes inside move to the Inbox."
+msgstr ""
+
+#: app/src/components/Sidebar.jsx:88
+msgid "New note here"
+msgstr ""
+
+#: app/src/components/Sidebar.jsx:91
+msgid "Rename"
+msgstr ""
+
+#: app/src/components/Sidebar.jsx:94
+#: app/src/components/Sidebar.jsx:137
+msgid "Delete"
+msgstr ""
+
+#: app/src/components/Sidebar.jsx:120
+msgid "Move this note to Trash?"
+msgstr ""
+
+#: app/src/components/Sidebar.jsx:136
+msgid "(untitled)"
+msgstr ""

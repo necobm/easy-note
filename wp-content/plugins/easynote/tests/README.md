@@ -4,9 +4,9 @@ Two layers of tests ship with the plugin.
 
 ## 1. WP-CLI smoke test (runs today)
 
-An assertion-based smoke test that exercises the plugin's logic units against
-the live WordPress install. It needs no extra tooling and is the verification
-used in this environment.
+An assertion-based smoke test that exercises the plugin's logic and REST surface
+against the live WordPress install. It needs no extra tooling and is the
+verification used in this environment.
 
 ```bash
 docker compose exec wordpress wp eval-file \
@@ -14,14 +14,23 @@ docker compose exec wordpress wp eval-file \
 ```
 
 It prints `PASS`/`FAIL` per check, creates and removes its own fixtures, and
-exits non-zero if anything fails. Current result: **17 passing**.
+exits non-zero if anything fails. It covers post-type/taxonomy registration,
+activation + cap granting, the content-meta sanitizer, the tree builder,
+ownership scoping, and the REST tree/move/toggle-public endpoints plus the
+public-note 404-for-private / 200-for-shared behaviour. Current result:
+**18 passing**.
+
+The front end is verified separately with a headless-browser smoke run
+(login gating, sidebar tree render, note open, and the type→autosave→reload
+round-trip).
 
 ## 2. PHPUnit suite (ready, not yet runnable here)
 
-`tests/phpunit/` contains a full `WP_UnitTestCase` suite (activation
-idempotency, tree helpers, Inbox vs. category, trash exclusion,
-create-in-category term assignment, role classification, URL routing, and the
-add-category nonce guard). Configuration is in `phpunit.xml.dist`.
+`tests/phpunit/` contains a `WP_UnitTestCase` suite covering post-type/taxonomy
+registration, activation + capability granting, the content-meta sanitizer, the
+tree builder, ownership scoping, and the REST endpoints (public visibility,
+author-only share, publish-on-share, and note move). Configuration is in
+`phpunit.xml.dist`.
 
 **Why it is not run in this environment:** the WordPress Docker image
 (`wordpress:php8.3-apache`) does not include `phpunit`, `composer`, `svn`, or

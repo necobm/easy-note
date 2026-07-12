@@ -1,6 +1,6 @@
 <?php
 /**
- * Note (post) and category (term) data-model helpers.
+ * Note and folder data-model helpers.
  *
  * @package EasyNote
  */
@@ -10,31 +10,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Maps the Notion-like model onto built-in WordPress objects:
+ * Query helpers over the `easynote_note` post type and `easynote_folder`
+ * taxonomy, plus the workspace tree builder consumed by the REST layer.
  *
- * - Categories (hierarchical `category` terms) are the tree nodes; a term's
- *   `description` holds its body text.
- * - Posts are the leaf notes, filed under the category they are assigned to.
- * - Notes with no real category surface under a virtual "Inbox" (the built-in
- *   default `Uncategorized` term is treated as the Inbox, never as a node).
+ * Notes are owned per-user via `post_author`; helpers accept an optional author
+ * scope so the REST layer can restrict listings to the current user. Folders are
+ * shared across the workspace. Notes filed under no folder surface in a virtual
+ * "Inbox" node.
  */
 final class EasyNote_Notes {
 
 	/**
-	 * Register hooks (create-in-category behaviour).
+	 * No runtime hooks needed under the headless model.
 	 */
-	public function register() {
-		add_action( 'load-post-new.php', array( $this, 'maybe_prefill_category' ) );
-	}
-
-	/**
-	 * Term id of the built-in default category ("Uncategorized").
-	 *
-	 * @return int
-	 */
-	public static function default_category_id() {
-		return (int) get_option( 'default_category' );
-	}
+	public function register() {}
 
 	/**
 	 * Post statuses that count as live notes (everything except trashed).
@@ -46,22 +35,17 @@ final class EasyNote_Notes {
 	}
 
 	/**
-	 * Get child categories of a parent term, alphabetically.
+	 * Get every folder term, ordered by name.
 	 *
-	 * The default category is excluded from the tree (it is the Inbox).
-	 *
-	 * @param int $parent_id Parent term id (0 for roots).
 	 * @return WP_Term[]
 	 */
-	public static function get_child_categories( $parent_id = 0 ) {
+	public static function get_folders() {
 		$terms = get_terms(
 			array(
-				'taxonomy'   => 'category',
+				'taxonomy'   => EasyNote_Taxonomy::TAXONOMY,
 				'hide_empty' => false,
-				'parent'     => (int) $parent_id,
 				'orderby'    => 'name',
 				'order'      => 'ASC',
-				'exclude'    => array( self::default_category_id() ),
 			)
 		);
 
@@ -69,100 +53,102 @@ final class EasyNote_Notes {
 	}
 
 	/**
-	 * Get the notes (posts) filed directly under a category, alphabetically.
+	 * Get notes, optionally scoped to a single author.
 	 *
-	 * @param int $term_id Category term id.
+	 * @param int $author_id Author to scope to, or 0 for all authors.
 	 * @return WP_Post[]
 	 */
-	public static function get_notes_in_category( $term_id ) {
-		return get_posts(
-			array(
-				'post_type'        => 'post',
-				'post_status'      => self::note_statuses(),
-				'numberposts'      => -1,
-				'orderby'          => 'title',
-				'order'            => 'ASC',
-				'suppress_filters' => false,
-				'tax_query'        => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
-					array(
-						'taxonomy'         => 'category',
-						'field'            => 'term_id',
-						'terms'            => (int) $term_id,
-						'include_children' => false,
-					),
-				),
-			)
+	public static function get_notes( $author_id = 0 ) {
+		$args = array(
+			'post_type'   => EasyNote_Post_Type::POST_TYPE,
+			'post_status' => self::note_statuses(),
+			'numberposts' => -1,
+			'orderby'     => 'title',
+			'order'       => 'ASC',
+		);
+
+		if ( $author_id > 0 ) {
+			$args['author'] = (int) $author_id;
+		}
+
+		return get_posts( $args );
+	}
+
+	/**
+	 * Build the full folder + note tree for the app sidebar.
+	 *
+	 * Returns a nested structure of folder nodes (each with `children` folders and
+	 * `notes`) plus a synthetic `inbox` list for notes with no folder. Notes are
+	 * scoped to `$author_id` unless `$include_others` is true.
+	 *
+	 * @param int  $author_id      Author to scope notes to.
+	 * @param bool $include_others Whether to include other users' notes.
+	 * @return array{folders:array,inbox:array}
+	 */
+	public static function build_tree( $author_id, $include_others = false ) {
+		$nodes = array();
+
+		foreach ( self::get_folders() as $term ) {
+			$nodes[ $term->term_id ] = array(
+				'id'       => (int) $term->term_id,
+				'name'     => $term->name,
+				'slug'     => $term->slug,
+				'parent'   => (int) $term->parent,
+				'children' => array(),
+				'notes'    => array(),
+			);
+		}
+
+		$scope = $include_others ? 0 : (int) $author_id;
+		$inbox = array();
+
+		foreach ( self::get_notes( $scope ) as $post ) {
+			$item       = self::note_summary( $post );
+			$folder_ids = wp_get_post_terms( $post->ID, EasyNote_Taxonomy::TAXONOMY, array( 'fields' => 'ids' ) );
+
+			if ( is_wp_error( $folder_ids ) || empty( $folder_ids ) ) {
+				$inbox[] = $item;
+				continue;
+			}
+
+			foreach ( $folder_ids as $folder_id ) {
+				if ( isset( $nodes[ $folder_id ] ) ) {
+					$nodes[ $folder_id ]['notes'][] = $item;
+				}
+			}
+		}
+
+		// Assemble the hierarchy: attach each node to its parent, collect roots.
+		$roots = array();
+
+		foreach ( $nodes as $id => &$node ) {
+			if ( $node['parent'] && isset( $nodes[ $node['parent'] ] ) ) {
+				$nodes[ $node['parent'] ]['children'][] = &$node;
+			} else {
+				$roots[] = &$node;
+			}
+		}
+		unset( $node );
+
+		return array(
+			'folders' => $roots,
+			'inbox'   => $inbox,
 		);
 	}
 
 	/**
-	 * Get the Inbox notes: posts whose only category is the default one.
+	 * Minimal note representation for tree/list responses.
 	 *
-	 * @return WP_Post[]
+	 * @param WP_Post $post Note post.
+	 * @return array{id:int,title:string,slug:string,author:int,modified:string}
 	 */
-	public static function get_inbox_notes() {
-		return get_posts(
-			array(
-				'post_type'    => 'post',
-				'post_status'  => self::note_statuses(),
-				'numberposts'  => -1,
-				'orderby'      => 'title',
-				'order'        => 'ASC',
-				'category'     => self::default_category_id(),
-			)
+	public static function note_summary( $post ) {
+		return array(
+			'id'       => (int) $post->ID,
+			'title'    => $post->post_title,
+			'slug'     => $post->post_name,
+			'author'   => (int) $post->post_author,
+			'modified' => mysql2date( 'c', $post->post_modified_gmt, false ),
 		);
-	}
-
-	/**
-	 * Category id to file the new note under for the current request.
-	 *
-	 * @var int
-	 */
-	private $prefill_category = 0;
-
-	/**
-	 * When "Add note" is launched from a category page, remember the target
-	 * category (for this request only) and assign it to the auto-draft that the
-	 * new-post screen creates. The editor then loads with that category
-	 * selected, so it is preserved when the note is saved — this works for both
-	 * the block editor (which persists terms at REST save time) and the classic
-	 * editor. The site-wide default category option is never changed.
-	 */
-	public function maybe_prefill_category() {
-		if ( empty( $_GET['easynote_cat'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only prefill of a GET param, no state change.
-			return;
-		}
-
-		$cat = absint( wp_unslash( $_GET['easynote_cat'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( ! $cat || ! current_user_can( 'edit_posts' ) ) {
-			return;
-		}
-		if ( ! term_exists( $cat, 'category' ) ) {
-			return;
-		}
-
-		$this->prefill_category = $cat;
-		add_action( 'wp_insert_post', array( $this, 'assign_prefill_category' ), 10, 3 );
-	}
-
-	/**
-	 * Assign the remembered category to the freshly created auto-draft.
-	 *
-	 * @param int     $post_id New post id.
-	 * @param WP_Post $post    Post object.
-	 * @param bool    $update  Whether this is an update (vs. a new insert).
-	 */
-	public function assign_prefill_category( $post_id, $post, $update ) {
-		if ( $update || ! $this->prefill_category || 'post' !== $post->post_type ) {
-			return;
-		}
-		if ( ! current_user_can( 'edit_post', $post_id ) ) {
-			return;
-		}
-
-		wp_set_post_terms( $post_id, array( $this->prefill_category ), 'category', false );
-
-		// Assign only to the first (auto-draft) insert of this request.
-		$this->prefill_category = 0;
 	}
 }

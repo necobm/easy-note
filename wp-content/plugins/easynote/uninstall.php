@@ -2,9 +2,9 @@
 /**
  * EasyNote uninstall cleanup.
  *
- * Removes only EasyNote's own options. User content — notes (posts) and
- * categories (terms) — are standard WordPress objects and are deliberately
- * left intact so the site degrades gracefully back to stock WordPress.
+ * Removes EasyNote's own option and the note capabilities it granted. User
+ * content — notes (easynote_note posts) and folders (easynote_folder terms) —
+ * is deliberately left intact so nothing is destroyed on uninstall.
  *
  * @package EasyNote
  */
@@ -14,4 +14,24 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
-delete_option( 'easynote_version' );
+require_once __DIR__ . '/inc/class-roles.php';
+
+/**
+ * Perform uninstall cleanup (wrapped in a function to avoid polluting the global
+ * scope with loop variables).
+ */
+function easynote_uninstall_cleanup() {
+	foreach ( array( 'administrator', 'editor' ) as $role_name ) {
+		$role = get_role( $role_name );
+		if ( null === $role ) {
+			continue;
+		}
+		foreach ( EasyNote_Roles::note_caps() as $cap ) {
+			$role->remove_cap( $cap );
+		}
+	}
+
+	delete_option( 'easynote_version' );
+}
+
+easynote_uninstall_cleanup();

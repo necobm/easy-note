@@ -2,9 +2,10 @@
 /**
  * EasyNote WP-CLI smoke test (assertion-based).
  *
- * Runs the plugin's logic units against a live WordPress install and reports
- * PASS/FAIL. This is the fallback verification used when the full PHPUnit
- * harness (svn/composer/phpunit + test DB) is not available in the environment.
+ * Exercises the headless plugin's logic and REST surface against a live
+ * WordPress install and reports PASS/FAIL. This is the fallback verification
+ * used when the full PHPUnit harness (svn/composer/phpunit + test DB) is not
+ * available in the environment.
  *
  * Usage (inside the container):
  *   wp eval-file wp-content/plugins/easynote/tests/wpcli-smoke.php --allow-root
@@ -36,92 +37,127 @@ function en_assert( $label, $cond ) {
 	}
 }
 
+/**
+ * Dispatch an internal REST request.
+ *
+ * @param string $method HTTP method.
+ * @param string $route  Route path.
+ * @param array  $body   Body params.
+ * @return WP_REST_Response
+ */
+function en_rest( $method, $route, $body = array() ) {
+	$req = new WP_REST_Request( $method, $route );
+	if ( $body ) {
+		$req->set_body_params( $body );
+	}
+	return rest_do_request( $req );
+}
+
 echo "EasyNote WP-CLI smoke test\n";
 echo "==========================\n";
 
-// --- Fixtures -------------------------------------------------------------
-$root = wp_insert_term( 'EN Smoke Root ' . wp_generate_password( 6, false ), 'category' );
-$root_id = is_wp_error( $root ) ? 0 : (int) $root['term_id'];
-$child = wp_insert_term( 'EN Smoke Child ' . wp_generate_password( 6, false ), 'category', array( 'parent' => $root_id ) );
-$child_id = is_wp_error( $child ) ? 0 : (int) $child['term_id'];
+$post_type = EasyNote_Post_Type::POST_TYPE;
+$taxonomy  = EasyNote_Taxonomy::TAXONOMY;
 
-$note_in_child = wp_insert_post(
-	array(
-		'post_title'  => 'EN Smoke Note',
-		'post_status' => 'publish',
-		'post_type'   => 'post',
-		'post_category' => array( $child_id ),
-	)
-);
-
-$inbox_note = wp_insert_post(
-	array(
-		'post_title'  => 'EN Smoke Inbox Note',
-		'post_status' => 'publish',
-		'post_type'   => 'post',
-	)
-);
-
-// --- Classes load ---------------------------------------------------------
-en_assert( 'plugin classes are loaded', class_exists( 'EasyNote_Notes' ) && class_exists( 'EasyNote_Category_Page' ) && class_exists( 'EasyNote_Roles' ) );
+// --- Classes load & registration -----------------------------------------
+en_assert( 'plugin classes are loaded', class_exists( 'EasyNote_Post_Type' ) && class_exists( 'EasyNote_REST_API' ) && class_exists( 'EasyNote_Notes' ) );
+en_assert( 'note post type is registered', post_type_exists( $post_type ) );
+en_assert( 'folder taxonomy is registered', taxonomy_exists( $taxonomy ) );
 
 // --- Activation idempotency ----------------------------------------------
 EasyNote_Activator::activate();
 EasyNote_Activator::activate(); // twice -> must not error or duplicate.
-en_assert( 'editor role exists after (repeated) activation', null !== get_role( 'editor' ) );
 en_assert( 'activation records version option', EASYNOTE_VERSION === get_option( 'easynote_version' ) );
+en_assert( 'administrators gain note caps', get_role( 'administrator' )->has_cap( 'edit_others_easynote_notes' ) );
 
-// --- Tree helpers ---------------------------------------------------------
-$root_ids = wp_list_pluck( EasyNote_Notes::get_child_categories( 0 ), 'term_id' );
-en_assert( 'get_child_categories(0) includes our root', in_array( $root_id, $root_ids, true ) );
-en_assert( 'get_child_categories(0) excludes default (Inbox) category', ! in_array( EasyNote_Notes::default_category_id(), $root_ids, true ) );
+// --- Fixtures -------------------------------------------------------------
+$admin_id = (int) ( get_users( array( 'role' => 'administrator', 'number' => 1, 'fields' => 'ID' ) )[0] ?? 0 );
+wp_set_current_user( $admin_id );
 
-$child_ids = wp_list_pluck( EasyNote_Notes::get_child_categories( $root_id ), 'term_id' );
-en_assert( 'get_child_categories(root) returns the child', array( $child_id ) === $child_ids );
+$folder    = wp_insert_term( 'EN Smoke Folder ' . wp_generate_password( 6, false ), $taxonomy );
+$folder_id = is_wp_error( $folder ) ? 0 : (int) $folder['term_id'];
 
-$notes = wp_list_pluck( EasyNote_Notes::get_notes_in_category( $child_id ), 'ID' );
-en_assert( 'get_notes_in_category(child) includes the filed note', in_array( $note_in_child, $notes, true ) );
+$note_id = wp_insert_post(
+	array(
+		'post_title'  => 'EN Smoke Note',
+		'post_status' => 'publish',
+		'post_type'   => $post_type,
+		'post_author' => $admin_id,
+	)
+);
+wp_set_post_terms( $note_id, array( $folder_id ), $taxonomy, false );
 
-$inbox_ids = wp_list_pluck( EasyNote_Notes::get_inbox_notes(), 'ID' );
-en_assert( 'get_inbox_notes() includes the uncategorized note', in_array( $inbox_note, $inbox_ids, true ) );
-en_assert( 'get_inbox_notes() excludes the categorized note', ! in_array( $note_in_child, $inbox_ids, true ) );
+$inbox_id = wp_insert_post(
+	array(
+		'post_title'  => 'EN Smoke Inbox',
+		'post_status' => 'publish',
+		'post_type'   => $post_type,
+		'post_author' => $admin_id,
+	)
+);
 
-// --- Alphabetical ordering ------------------------------------------------
-$a = wp_insert_term( 'ZZZ EN Order', 'category', array( 'parent' => $root_id ) );
-$b = wp_insert_term( 'AAA EN Order', 'category', array( 'parent' => $root_id ) );
-$order = wp_list_pluck( EasyNote_Notes::get_child_categories( $root_id ), 'name' );
-$aaa = array_search( 'AAA EN Order', $order, true );
-$zzz = array_search( 'ZZZ EN Order', $order, true );
-en_assert( 'child categories are alphabetical', false !== $aaa && false !== $zzz && $aaa < $zzz );
+// --- Meta sanitizer -------------------------------------------------------
+en_assert( 'content sanitizer normalizes valid JSON', '{"a":1}' === EasyNote_Post_Type::sanitize_content( '{ "a" : 1 }' ) );
+en_assert( 'content sanitizer rejects non-JSON to {}', '{}' === EasyNote_Post_Type::sanitize_content( 'not json' ) );
 
-// --- URL helpers ----------------------------------------------------------
-en_assert( 'url(0) is the plain EasyNote screen', admin_url( 'admin.php?page=easynote' ) === EasyNote_Category_Page::url( 0 ) );
-en_assert( 'url(N) carries the node id', false !== strpos( EasyNote_Category_Page::url( $root_id ), 'node=' . $root_id ) );
-en_assert( 'new_note_url(N) carries easynote_cat', false !== strpos( EasyNote_Category_Page::new_note_url( $child_id ), 'easynote_cat=' . $child_id ) );
+// --- Tree builder ---------------------------------------------------------
+$tree        = EasyNote_Notes::build_tree( $admin_id, false );
+$folder_node = null;
+foreach ( $tree['folders'] as $f ) {
+	if ( $f['id'] === $folder_id ) {
+		$folder_node = $f;
+	}
+}
+en_assert( 'tree contains our folder', null !== $folder_node );
+en_assert( 'tree folder lists the filed note', $folder_node && in_array( $note_id, wp_list_pluck( $folder_node['notes'], 'id' ), true ) );
+en_assert( 'tree inbox lists the loose note', in_array( $inbox_id, wp_list_pluck( $tree['inbox'], 'id' ), true ) );
 
-// --- Role logic -----------------------------------------------------------
-$admin_id  = (int) ( get_users( array( 'role' => 'administrator', 'number' => 1, 'fields' => 'ID' ) )[0] ?? 0 );
-$editor_id = (int) ( get_users( array( 'role' => 'editor', 'number' => 1, 'fields' => 'ID' ) )[0] ?? 0 );
+// --- REST: tree -----------------------------------------------------------
+$res = en_rest( 'GET', '/easynote/v1/tree' );
+en_assert( 'REST tree returns 200', 200 === $res->get_status() );
 
-if ( $editor_id ) {
+// --- REST: move to inbox --------------------------------------------------
+$res = en_rest( 'POST', "/easynote/v1/notes/{$note_id}/move", array( 'folder_id' => 0 ) );
+en_assert( 'REST move returns 200', 200 === $res->get_status() );
+en_assert( 'note has no folder after move', array() === wp_get_post_terms( $note_id, $taxonomy, array( 'fields' => 'ids' ) ) );
+
+// --- REST: public endpoint before/after sharing ---------------------------
+$slug = get_post_field( 'post_name', $note_id );
+$res  = en_rest( 'GET', "/easynote/v1/public-notes/{$slug}" );
+en_assert( 'private note is 404 on public endpoint', 404 === $res->get_status() );
+
+$res = en_rest( 'POST', "/easynote/v1/notes/{$note_id}/public", array( 'public' => true ) );
+en_assert( 'REST toggle-public returns 200', 200 === $res->get_status() );
+
+$res = en_rest( 'GET', "/easynote/v1/public-notes/{$slug}" );
+en_assert( 'shared note is 200 on public endpoint', 200 === $res->get_status() );
+en_assert( 'public payload omits author', ! array_key_exists( 'author', (array) $res->get_data() ) );
+
+// --- Ownership scoping: a second user must not see these notes ------------
+$editor_id = wp_insert_user(
+	array(
+		'user_login' => 'en_smoke_editor_' . wp_generate_password( 5, false ),
+		'user_pass'  => wp_generate_password( 12, false ),
+		'role'       => 'editor',
+	)
+);
+if ( ! is_wp_error( $editor_id ) ) {
 	wp_set_current_user( $editor_id );
-	en_assert( 'editor is a restricted EasyNote user', EasyNote_Roles::is_restricted_user() );
-	en_assert( 'editor is not a site admin', ! EasyNote_Roles::is_site_admin() );
+	$other_tree = EasyNote_Notes::build_tree( $editor_id, false );
+	$count      = count( $other_tree['inbox'] );
+	foreach ( $other_tree['folders'] as $f ) {
+		$count += count( $f['notes'] );
+	}
+	en_assert( 'a non-owner sees none of the owner notes', 0 === $count );
+	wp_delete_user( $editor_id );
 }
-if ( $admin_id ) {
-	wp_set_current_user( $admin_id );
-	en_assert( 'admin is a site admin', EasyNote_Roles::is_site_admin() );
-	en_assert( 'admin is not restricted', ! EasyNote_Roles::is_restricted_user() );
-}
-wp_set_current_user( 0 );
+wp_set_current_user( $admin_id );
 
 // --- Cleanup --------------------------------------------------------------
-wp_delete_post( $note_in_child, true );
-wp_delete_post( $inbox_note, true );
-wp_delete_term( $child_id, 'category' );
-if ( ! is_wp_error( $a ) ) { wp_delete_term( (int) $a['term_id'], 'category' ); }
-if ( ! is_wp_error( $b ) ) { wp_delete_term( (int) $b['term_id'], 'category' ); }
-wp_delete_term( $root_id, 'category' );
+wp_delete_post( $note_id, true );
+wp_delete_post( $inbox_id, true );
+wp_delete_term( $folder_id, $taxonomy );
+wp_set_current_user( 0 );
 
 echo "==========================\n";
 echo "PASS: {$GLOBALS['en_pass']}  FAIL: {$GLOBALS['en_fail']}\n";
