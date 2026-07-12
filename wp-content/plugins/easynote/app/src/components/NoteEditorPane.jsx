@@ -7,7 +7,7 @@ import { parseContent } from '../editor/emptyValue';
 import { useNote, useNoteMutations, useTree } from '../state/hooks';
 import { useAutosave } from '../state/useAutosave';
 import { useRest, useConfig } from '../lib/context';
-import {FloatingBlockActions, FloatingToolbar, SlashCommandMenu} from "@yoopta/ui";
+import EditorTools from './EditorTools';
 
 /**
  * Loads a note by the route param, then mounts the editor keyed on the note id so
@@ -121,9 +121,7 @@ function NoteEditor( { note } ) {
 					placeholder={ __( "Type / to open menu...", 'easynote' ) }
 					onChange={ ( value ) => contentSave.schedule( value ) }
 				>
-					<FloatingToolbar />
-					<FloatingBlockActions />
-					<SlashCommandMenu />
+					<EditorTools editor={ editor } />
 				</YooptaEditor>
 			</div>
 		</div>
