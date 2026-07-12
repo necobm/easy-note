@@ -15,6 +15,12 @@ import Blockquote from '@yoopta/blockquote';
 import Link from '@yoopta/link';
 import { Bold, Italic, Underline, Strike, CodeMark, Highlight } from '@yoopta/marks';
 import {Code} from "@yoopta/code";
+import { ParagraphUI } from '@yoopta/themes-shadcn/paragraph';
+import { HeadingsUI } from '@yoopta/themes-shadcn/headings';
+import { ListsUI } from '@yoopta/themes-shadcn/lists';
+import { BlockquoteUI } from '@yoopta/themes-shadcn/blockquote';
+import { CodeUI } from '@yoopta/themes-shadcn/code';
+import { LinkUI } from '@yoopta/themes-shadcn/link';
 
 /**
  * The @yoopta/code block plugin is intentionally excluded: it bundles Shiki with
@@ -22,17 +28,23 @@ import {Code} from "@yoopta/code";
  * app. Inline code is still available via the CodeMark. Re-adding fenced code
  * blocks with a slimmer highlighter is a follow-up.
  */
+/**
+ * Themed via `@yoopta/themes-shadcn`'s per-plugin subpaths (not its bare
+ * `applyTheme()` entry point, which statically imports theme modules for
+ * every plugin the package supports — including ones this project doesn't
+ * install, like @yoopta/table/tabs/video/embed/file/steps).
+ */
 export const PLUGINS = [
-	Paragraph,
-	HeadingOne,
-	HeadingTwo,
-	HeadingThree,
-	BulletedList,
-	NumberedList,
-	TodoList,
-	Blockquote,
-	Link,
-	Code
+	Paragraph.extend( { elements: ParagraphUI } ),
+	HeadingOne.extend( { elements: HeadingsUI.HeadingOne } ),
+	HeadingTwo.extend( { elements: HeadingsUI.HeadingTwo } ),
+	HeadingThree.extend( { elements: HeadingsUI.HeadingThree } ),
+	BulletedList.extend( { elements: ListsUI.BulletedList } ),
+	NumberedList.extend( { elements: ListsUI.NumberedList } ),
+	TodoList.extend( { elements: ListsUI.TodoList } ),
+	Blockquote.extend( { elements: BlockquoteUI } ),
+	Link.extend( { elements: LinkUI } ),
+	Code.extend( { elements: CodeUI } ),
 ];
 
 export const MARKS = [ Bold, Italic, Underline, Strike, CodeMark, Highlight ];

@@ -1,5 +1,60 @@
 /* EasyNote SPA styles. Scoped under app roots; the shell loads no theme CSS. */
 
+/*
+ * Tailwind v4, no Preflight: the shadcn Yoopta theme's block components (see
+ * editorConfig.js) are written as Tailwind utility class names with no
+ * compiled CSS of their own, so a real Tailwind build is required for them to
+ * render as anything but bare HTML. Preflight (Tailwind's global reset) is
+ * skipped because the existing `.en-*` styles below already assume un-reset
+ * browser defaults for elements outside the editor (buttons, selects, inputs).
+ * `@source` points the class scanner at the theme package's prebuilt dist
+ * output, since Tailwind doesn't scan node_modules by default.
+ */
+@import 'tailwindcss/theme.css' layer( theme );
+@import 'tailwindcss/utilities.css' layer( utilities );
+@source '../../node_modules/@yoopta/themes-shadcn/dist';
+
+@import '@yoopta/themes-shadcn/variables.css';
+
+@theme {
+	--color-background: hsl( var( --background ) );
+	--color-foreground: hsl( var( --foreground ) );
+	--color-card: hsl( var( --card ) );
+	--color-card-foreground: hsl( var( --card-foreground ) );
+	--color-popover: hsl( var( --popover ) );
+	--color-popover-foreground: hsl( var( --popover-foreground ) );
+	--color-primary: hsl( var( --primary ) );
+	--color-primary-foreground: hsl( var( --primary-foreground ) );
+	--color-secondary: hsl( var( --secondary ) );
+	--color-secondary-foreground: hsl( var( --secondary-foreground ) );
+	--color-muted: hsl( var( --muted ) );
+	--color-muted-foreground: hsl( var( --muted-foreground ) );
+	--color-accent: hsl( var( --accent ) );
+	--color-accent-foreground: hsl( var( --accent-foreground ) );
+	--color-destructive: hsl( var( --destructive ) );
+	--color-destructive-foreground: hsl( var( --destructive-foreground ) );
+	--color-border: hsl( var( --border ) );
+	--color-input: hsl( var( --input ) );
+	--color-ring: hsl( var( --ring ) );
+
+	--radius-lg: var( --radius );
+	--radius-md: calc( var( --radius ) - 2px );
+	--radius-sm: calc( var( --radius ) - 4px );
+}
+
+/*
+ * Author-origin classes (Tailwind's utilities included) already win over the
+ * browser's user-agent default margins/padding on their own — no reset is
+ * needed, and one here would out-specificity the theme's own `mt-8`/`pl-6`/
+ * `ml-6` utility classes (a bare class beats an element selector only when
+ * combined with another class, e.g. `.en-editor h1` > `.mt-8`), silently
+ * cancelling the theme's intended spacing. Don't add one back.
+ */
+.en-editor blockquote {
+	padding-left: 2rem;
+	font-style: italic;
+}
+
 :root {
 	--en-bg: #ffffff;
 	--en-sidebar-bg: #f7f7f5;
