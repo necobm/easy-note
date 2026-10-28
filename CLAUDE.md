@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-EasyNote: a self-hosted, Notion-like note app delivered as a single WordPress plugin, `wp-content/plugins/easynote/`, running on WordPress 7.0.1 in a Docker Compose dev environment. See `README.md` for the overview and roadmap, and `docs/specs/easynote-mvp-spec.md` for the original spec.
+EasyNote: a self-hosted, Notion-like note app delivered as a single WordPress plugin, `wp-content/plugins/easynote/`, running on WordPress 7.0.1 in a Docker Compose dev environment. See `README.md` for the overview and roadmap, and `docs/specs/easynote-mvp-spec.md` for the spec (v2, which records why the UI moved from Gutenberg in wp-admin to a headless React app).
 
 The repository versions only project code: the Docker/env scaffolding, `docs/`, and the plugin. WordPress core (`wp-admin/`, `wp-includes/`, root `wp-*.php`), the default themes, Akismet and `wp-config.php` are git-ignored. The `wordpress` image writes them into the bind-mounted tree on first boot. Never modify core; all behavior goes through hooks in the plugin.
 
 ## Plugin architecture
 
-The implementation diverges from the spec, which described a restyled wp-admin with Gutenberg on core posts/categories. The current architecture is:
+The architecture follows spec v2 (Variant 2, "headless"):
 
 - **Data:** `easynote_note` custom post type (`inc/class-post-type.php`) and the hierarchical `easynote_folder` taxonomy (`inc/class-taxonomy.php`). Note and folder bodies are Yoopta editor JSON strings in `_easynote_content` post/term meta. The `_easynote_public` meta flags a shared note, and only the note's author can change it.
 - **Ownership:** notes are scoped to `post_author`, and folders are shared across the workspace. Notes with no folder appear in a virtual "Inbox" (`inc/class-notes.php` builds the tree).

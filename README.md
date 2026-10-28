@@ -10,7 +10,8 @@ any standard WordPress install becomes the EasyNote app. **WordPress core files
 are never modified**: everything works through standard hooks, so deactivating
 the plugin leaves a stock WordPress site with every note intact.
 
-> The full product spec is in
+> The full product spec, including why the UI moved from Gutenberg in wp-admin
+> to a headless React app, is in
 > [`docs/specs/easynote-mvp-spec.md`](docs/specs/easynote-mvp-spec.md).
 
 ## How it works
@@ -18,7 +19,7 @@ the plugin leaves a stock WordPress site with every note intact.
 | Concept | Implementation |
 |---------|----------------|
 | Note | `easynote_note` custom post type. The body is stored as Yoopta editor JSON in the `_easynote_content` meta. |
-| Folder (tree node) | `easynote_folder` hierarchical taxonomy, nestable to any depth. Like a Notion page, a folder has its own body (`_easynote_content` term meta). |
+| Folder (tree node) | `easynote_folder` hierarchical taxonomy, nestable to any depth. Like a Notion page, a folder can have its own body (`_easynote_content` term meta). |
 | Inbox | A virtual root node that lists notes with no folder. |
 | App UI | A React SPA at `/notes` and `/notes/{id}`, using the [Yoopta](https://github.com/yoopta-editor/Yoopta-Editor) block editor. It talks to WordPress over the REST API (`easynote/v1` + core `wp/v2`). |
 | Sharing | Notes are private and scoped to their author. If the author turns on sharing, a note becomes readable without login at `/n/{slug}`. |
@@ -95,67 +96,52 @@ bash wp-content/plugins/easynote/bin/build-release.sh   # → dist/easynote.zip
 
 ## Roadmap
 
-This roadmap is based on the
-[MVP spec](docs/specs/easynote-mvp-spec.md). The first prototype changed the
-spec's architecture in two ways:
-
-- **UI:** the spec puts the app inside a restyled wp-admin and uses Gutenberg.
-  The current build is a **headless React SPA** on the front end, uses the
-  **Yoopta** editor, and leaves wp-admin stock.
-- **Data model:** the spec reuses core posts and categories. The current build
-  uses a dedicated post type (`easynote_note`) and taxonomy (`easynote_folder`).
-
-The roadmap follows the current architecture. Spec sections are cited where they
-still apply.
+This roadmap tracks the [MVP spec (v2)](docs/specs/easynote-mvp-spec.md). The
+spec was revised after the first prototype: Gutenberg inside wp-admin was
+replaced by a headless React app with the Yoopta editor (spec §3). References
+below point to spec sections (FR = functional requirement, AC = acceptance
+criterion in §10).
 
 Legend: ✅ done · 🟡 partial · ⬜ not started
 
-### Phase 1: MVP core (spec §5, §6, §10)
+### Phase 1: MVP core
 
 - ✅ Single, implicit workspace (FR-1)
-- ✅ Folder tree that nests to any depth, with notes as leaves (FR-6–FR-8, AC 3)
-- ✅ Folder page with its own body content (FR-9, §5.2). Folder bodies are already rich Yoopta content, not plain text.
-- ✅ Create a note or sub-folder in place under the current folder (FR-4, FR-10, AC 6)
-- ✅ Virtual Inbox for notes without a folder (§5.3, FR-5b, AC 7)
-- ✅ Move a note or folder to a different parent (REST endpoints and a folder picker in the editor)
-- ✅ Autosave while editing
-- ✅ Every capability check goes through WordPress (`current_user_can`, REST nonces), with per-author note scoping (§9)
-- 🟡 Text **and embedded images** in notes (FR-3, AC 5). Text blocks work. An image block backed by the Media Library isn't set up yet.
-- 🟡 Delete to Trash with recovery (FR-5a, AC 8). Delete already moves notes to Trash, but recovery only works from wp-admin. The app needs its own Trash view and restore action.
-- ⬜ Sort siblings in the tree alphabetically, folders first, then notes (§5.4)
-- ⬜ Friendly empty states, e.g. "Add your first note" (§8)
-- ⬜ Check the responsive layout on mobile browsers (§8)
+- ✅ Single user is enough, even a lone admin; wp-admin stays stock (§4, FR-15, AC 1–2)
+- ✅ `/notes` gated by the WordPress login, with a redirect back afterwards (§7.3, AC 3)
+- ✅ Sidebar tree with folders nested to any depth, and notes as leaves (FR-6, AC 4)
+- ✅ Notes open in place: the sidebar stays visible and `/notes/{id}` is bookmarkable (FR-5, FR-7, AC 5)
+- ✅ Autosave (FR-5a)
+- ✅ Virtual Inbox for notes without a folder; deleting a folder moves its notes there (§5.3, AC 9)
+- ✅ Move a note to another folder from the editor (FR-5d)
+- ✅ Per-author note scoping in both the tree and REST (§9, AC 11)
+- ✅ Author-only public sharing at `/n/{slug}`, with 404 for private notes (§6.5, AC 12)
+- 🟡 Text **and embedded images** (FR-3, AC 6). Text blocks work; a Media Library image block isn't set up yet.
+- 🟡 Trash with recovery (FR-5b, AC 10). Deleting moves a note to Trash, but recovery only works from wp-admin. The app needs a Trash view.
+- 🟡 Tree management (FR-8). Notes and root folders can be created, renamed and deleted. Creating sub-folders and reparenting folders from the UI is missing; the REST endpoint for reparenting exists.
+- ⬜ Folder page showing the title, an editable body and a list of children (FR-9–FR-10, AC 7–8). The backend already stores the body (`_easynote_content` term meta).
+- ⬜ Alphabetical sibling ordering (§5.4)
+- ⬜ Friendly empty states and a mobile layout check (§8)
 
-### Phase 2: Roles and access (spec §4, §6.5)
-
-- ✅ Administrators keep the full, unchanged wp-admin (FR-12, AC 2)
-- ✅ Activation ensures the `editor` role exists and gives administrators the note capabilities
-- ⬜ Give the `editor` role the note capabilities so editors can use the app
-- ⬜ After login, send editors to `/notes` instead of the dashboard (FR-13, AC 1)
-- ⬜ Send editors who visit the public front end into the app (§7.4, AC 9)
-- ⬜ Keep editors out of wp-admin screens they shouldn't use (FR-14, AC 10)
-- ⬜ Decide whether folders stay shared across the workspace or become private to each user
-
-### Phase 3: Quality and release
+### Phase 2: Quality and release
 
 - ✅ WP-CLI smoke test covering registration, capabilities, the tree, ownership and REST
+- ✅ Uninstall that removes only EasyNote's option and capabilities, never notes or folders (§7.6)
 - ✅ Release script that produces a WordPress.org-ready ZIP
 - ⬜ Get the PHPUnit suite running in the Docker image (tests/README.md)
 - ⬜ Jest tests for the React app (`@wordpress/scripts test-unit-js`)
 - ⬜ End-to-end (Playwright) run of the full acceptance checklist (spec §10)
-- ⬜ Uninstall that removes only EasyNote's own options and meta, never notes or folders (§7.6)
 
-### Phase 4: Future work (spec §11)
+### Phase 3: Future work (spec §11)
 
-- ✅ **Sharing / public note pages** at `/n/{slug}` (delivered early)
-- ✅ **Rich folder bodies** (delivered early, see Phase 1)
-- ⬜ **Search** across notes
-- ⬜ **Drag-and-drop** to reorder and move items in the tree (with an order index in term and post meta)
-- ⬜ **Version history** in the app, built on WordPress revisions
-- ⬜ **Multiple workspaces**
-- ⬜ Slash menu and floating toolbar once the Yoopta tool packages support v6
-- ⬜ Code block with lazy-loaded syntax grammars (left out today because of bundle size)
-- ⬜ ~~Classic editor option~~. Superseded now that Yoopta replaced Gutenberg.
+- ⬜ Note capabilities for `editor` (or a dedicated role) on multi-user sites
+- ⬜ Private folders, or a per-user folder tree
+- ⬜ Search across notes
+- ⬜ Drag-and-drop to reorder and reparent in the tree
+- ⬜ Version history in the app, built on WordPress revisions
+- ⬜ Multiple workspaces
+- ⬜ Slash menu and floating toolbar (waiting for Yoopta v6 tool packages), plus a lazy-loaded code block
+- ⬜ Designed public pages for shared notes
 
 ## License
 
