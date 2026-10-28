@@ -4,7 +4,36 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A WordPress 7.0.1 site ("easy-note") running in a Docker Compose dev environment. The repository is the full WordPress tree (core files at the root) plus a Docker wrapper. Everything under the root except the Docker/env files (`Dockerfile`, `docker-compose.yml`, `.env*`) is either WordPress core or default content — there is no custom theme or plugin yet. `wp-content/plugins/` has only Akismet; `wp-content/themes/` has only the default Twenty* themes. Any project-specific development happens by adding a theme or plugin under `wp-content/`.
+EasyNote: a self-hosted, Notion-like note app delivered as a single WordPress plugin, `wp-content/plugins/easynote/`, running on WordPress 7.0.1 in a Docker Compose dev environment. See `README.md` for the overview and roadmap, and `docs/specs/easynote-mvp-spec.md` for the original spec.
+
+The repository versions only project code: the Docker/env scaffolding, `docs/`, and the plugin. WordPress core (`wp-admin/`, `wp-includes/`, root `wp-*.php`), the default themes, Akismet and `wp-config.php` are git-ignored. The `wordpress` image writes them into the bind-mounted tree on first boot. Never modify core; all behavior goes through hooks in the plugin.
+
+## Plugin architecture
+
+The implementation diverges from the spec, which described a restyled wp-admin with Gutenberg on core posts/categories. The current architecture is:
+
+- **Data:** `easynote_note` custom post type (`inc/class-post-type.php`) and the hierarchical `easynote_folder` taxonomy (`inc/class-taxonomy.php`). Note and folder bodies are Yoopta editor JSON strings in `_easynote_content` post/term meta. The `_easynote_public` meta flags a shared note, and only the note's author can change it.
+- **Ownership:** notes are scoped to `post_author`, and folders are shared across the workspace. Notes with no folder appear in a virtual "Inbox" (`inc/class-notes.php` builds the tree).
+- **REST:** core `wp/v2` handles plain CRUD. `inc/class-rest-api.php` adds the `easynote/v1` endpoints for tree, note move, public toggle and folder move. `inc/class-rest-public.php` is the only unauthenticated endpoint: it returns a public note by slug and a 404 for anything private.
+- **App shell:** `inc/class-app-shell.php` adds the rewrite routes `/notes`, `/notes/{id}` (login-gated) and `/n/{slug}` (public read-only). It renders a standalone HTML shell, not the active theme, and enqueues the bundle. The routes need pretty permalinks. wp-admin is left stock.
+- **Front end:** `app/` is a React SPA (Yoopta 6 editor, TanStack Query, react-router, Tailwind) built with `@wordpress/scripts`. It has two entries, `index` (the app) and `public` (the shared-note view). React is externalized to WordPress core's handles. Node isn't in the container, so build on the host:
+
+  ```bash
+  cd wp-content/plugins/easynote/app && npm install && npm run build   # or npm run start
+  ```
+
+  `app/build/` is git-ignored. After a rebuild, reload the browser; there's no HMR.
+
+## Tests and release
+
+```bash
+# WP-CLI smoke test (the verification that actually runs here)
+docker compose exec wordpress wp eval-file wp-content/plugins/easynote/tests/wpcli-smoke.php --allow-root
+# Release ZIP (builds the app, writes dist/easynote.zip)
+bash wp-content/plugins/easynote/bin/build-release.sh
+```
+
+The PHPUnit suite in `tests/phpunit/` exists, but the image lacks phpunit and the WP test library. `tests/README.md` explains how to enable it.
 
 ## Running it
 
@@ -15,7 +44,7 @@ cp .env.example .env      # then edit passwords in .env
 docker compose up -d      # builds the image, starts wordpress + mysql
 ```
 
-Site: `http://localhost:8080` (port set by `WP_PORT` in `.env`). Complete the WordPress install wizard in the browser on first boot.
+Site: `http://localhost:8080` (port set by `WP_PORT` in `.env`). Complete the WordPress install wizard in the browser on first boot. Then activate the plugin with `docker compose exec wordpress wp plugin activate easynote`, set pretty permalinks, and open `/notes`.
 
 ```bash
 docker compose logs -f wordpress   # tail app logs
@@ -47,12 +76,12 @@ Specialists and ownership:
 
 - **orchestrator** — read-only planner. For a multi-part request, invoke it first to get an ordered delegation plan, then execute that plan.
 - **wordpress-expert** — all PHP/WordPress backend (plugin, hooks, REST, admin, security) and the server side of dynamic blocks (`render.php` / `render_callback`).
-- **react-expert** — Gutenberg block front end (`block.json`, edit/save, attributes, `@wordpress/scripts` build).
-- **test-implementer** — PHPUnit (plugin PHP) and Jest (`@wordpress/scripts test-unit-js`, block JS); runs the tests it writes.
+- **react-expert** — React front end: the EasyNote SPA in `app/` (Yoopta editor, `@wordpress/scripts` build) and any Gutenberg blocks.
+- **test-implementer** — PHPUnit (plugin PHP), the WP-CLI smoke test, and Jest (`@wordpress/scripts test-unit-js`); runs the tests it writes.
 - **code-reviewer** — read-only correctness + WordPress security review; runs last, before committing.
 
 Default feature pipeline: **orchestrator** (plan) → **wordpress-expert** and/or **react-expert** (build) → **test-implementer** → **code-reviewer** → loop back on blocking findings.
 
-Sequencing rule: independent PHP plugin work and block JS can run **in parallel**; when a block depends on a plugin REST endpoint or a dynamic `render_callback`, **serialize** — wordpress-expert defines the contract first, then react-expert builds against it.
+Sequencing rule: independent PHP plugin work and app JS can run **in parallel**. When the app depends on a new or changed REST endpoint (or a block on a dynamic `render_callback`), **serialize**: wordpress-expert defines the contract first, then react-expert builds against it.
 
 Each specialist routes into the skills already installed under `.agents/skills/` (e.g. `wp-plugin-development`, `wp-block-development`, `vercel-react-best-practices`) rather than duplicating that guidance.
